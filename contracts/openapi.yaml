@@ -1,0 +1,78 @@
+openapi: 3.1.0
+info:
+  title: 漫画平台公共 API
+  version: 0.1.0
+paths:
+  /api/v1/comics:
+    get:
+      operationId: listComics
+      summary: 获取公开漫画列表
+      description: 首期返回固定示例目录中的全部漫画。请求无需认证或参数。
+      security: []
+      responses:
+        '200':
+          description: 成功读取目录。目录为空时仍返回 200，items 为空数组。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComicList'
+              examples:
+                populated:
+                  summary: 含一部漫画
+                  value:
+                    items:
+                      - id: demo-001
+                        title: 示例漫画
+                empty:
+                  summary: 空目录
+                  value:
+                    items: []
+        '500':
+          description: 服务端因内部错误无法返回目录。code 可供程序识别，message 用于展示，措辞可变。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalError'
+              example:
+                error:
+                  code: internal_error
+                  message: 暂时无法读取漫画列表。
+components:
+  schemas:
+    ComicList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComicSummary'
+    ComicSummary:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: 唯一标识该漫画的稳定、不透明字符串。客户端按字符串原值使用。
+        title:
+          type: string
+          minLength: 1
+          pattern: '\S'
+          description: 用于展示的标题，至少含一个非空白字符。
+    InternalError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              const: internal_error
+            message:
+              type: string
+              minLength: 1
+              pattern: '\S'
+              description: 可向读者展示的简短说明，不含堆栈或内部实现细节。

@@ -33,7 +33,7 @@ The project owner controls visual design.
 - Implement essential functional layout when needed.
 
 ### Styling Rules
-- Prefer CSS Modules and CSS custom properties.
+- Use separate CSS Modules and CSS custom properties.
 - Keep visual styling separate from business logic.
 - Do not introduce Tailwind or CSS-in-JS without approval.
 - Do not hardcode visual styles in JSX.
@@ -46,3 +46,22 @@ For new UI components:
 2. Explain required CSS hooks.
 3. Provide only minimal necessary styles.
 4. Leave final visual styling to the project owner.
+
+When changing DOM structure or CSS class names, identify affected selectors
+and describe the impact on owner-maintained styles in the review notes.
+
+## API Contract
+
+Treat [the OpenAPI document](contracts/openapi.yaml) as authoritative for
+public HTTP behavior. Update the contract and relevant tests in the same
+change as an API behavior change.
+
+## Testing and Review
+
+- Router tests exercise routing, handlers and responses in process.
+- Real HTTP integration tests exercise the listening server and HTTP client.
+  Bind to a temporary port (port 0) and use the address assigned by the OS.
+  Use temporary ports for every automated test that opens a network listener.
+- Frontend component tests exercise user-visible states and interactions.
+- Explain the purpose of each new test dependency in the review notes.
+- Keep each approved implementation step in its own reviewable commit.
