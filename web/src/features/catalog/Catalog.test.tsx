@@ -1,8 +1,19 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Catalog from './Catalog'
 
 const fetchComics = vi.fn<typeof fetch>()
+
+function deferredResponse() {
+  let resolve!: (response: Response) => void
+  let reject!: (error: Error) => void
+  const promise = new Promise<Response>((onResolve, onReject) => {
+    resolve = onResolve
+    reject = onReject
+  })
+  return { promise, resolve, reject }
+}
 
 beforeEach(() => {
   fetchComics.mockReset()
@@ -23,6 +34,33 @@ it('请求期间显示加载提示，卸载时取消请求', () => {
   expect(signal?.aborted).toBe(false)
   unmount()
   expect(signal?.aborted).toBe(true)
+})
+
+it.each(['成功', '失败'] as const)('StrictMode 下旧请求迟到%s时保留新目录', async outcome => {
+  const previous = deferredResponse()
+  const current = deferredResponse()
+  // 故意忽略取消信号，让旧请求在清理后仍能返回结果。
+  fetchComics.mockReturnValueOnce(previous.promise).mockReturnValueOnce(current.promise)
+  render(<StrictMode><Catalog /></StrictMode>)
+
+  expect(fetchComics).toHaveBeenCalledTimes(2)
+  expect(fetchComics.mock.calls[0][1]?.signal?.aborted).toBe(true)
+  expect(fetchComics.mock.calls[1][1]?.signal?.aborted).toBe(false)
+
+  await act(async () => {
+    current.resolve(Response.json({ items: [{ id: 'new', title: '山间来信' }] }))
+  })
+  expect(screen.getByRole('listitem').textContent).toBe('山间来信')
+
+  await act(async () => {
+    if (outcome === '成功') {
+      previous.resolve(Response.json({ items: [{ id: 'old', title: '雨天书店' }] }))
+    } else {
+      previous.reject(new TypeError('Failed to fetch'))
+    }
+  })
+  expect(screen.queryByRole('alert')).toBeNull()
+  expect(screen.getByRole('listitem').textContent).toBe('山间来信')
 })
 
 it('按接口返回顺序显示漫画标题', async () => {
