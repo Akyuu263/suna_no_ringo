@@ -1,0 +1,10 @@
+.catalog {
+  display: grid;
+  gap: var(--catalog-gap, 1rem);
+}
+
+.heading,
+.message,
+.list {
+  margin-block: 0;
+}
